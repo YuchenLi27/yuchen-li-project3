@@ -1,11 +1,22 @@
 const API_ROOT = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = `${API_ROOT}/user`;
 
+const handleResponse = async (response) => {
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
+};
+
 export const checkLogin = async () => {
   const response = await fetch(`${API_BASE}/isLoggedIn`, {
     credentials: "include",
   });
-  return response.json();
+
+  return handleResponse(response);
 };
 
 export const loginUser = async (payload) => {
@@ -18,7 +29,7 @@ export const loginUser = async (payload) => {
     body: JSON.stringify(payload),
   });
 
-  return response.json();
+  return handleResponse(response);
 };
 
 export const registerUser = async (payload) => {
@@ -31,7 +42,7 @@ export const registerUser = async (payload) => {
     body: JSON.stringify(payload),
   });
 
-  return response.json();
+  return handleResponse(response);
 };
 
 export const logoutUser = async () => {
@@ -40,5 +51,5 @@ export const logoutUser = async () => {
     credentials: "include",
   });
 
-  return response.json();
+  return handleResponse(response);
 };
