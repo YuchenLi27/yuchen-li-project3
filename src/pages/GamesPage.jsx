@@ -17,7 +17,7 @@ function formatDate(dateString) {
 
 export default function GamesPage() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, authLoading } = useAuth();
 
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,10 @@ export default function GamesPage() {
   }, []);
 
   const handleCreateGame = async (difficulty) => {
+    if (authLoading) {
+      return;
+    }
+
     if (!isLoggedIn) {
       setErrorMessage("You must be logged in to create a game.");
       return;
@@ -74,6 +78,8 @@ export default function GamesPage() {
       setCreatingDifficulty("");
     }
   };
+
+  const createButtonsDisabled = authLoading || !isLoggedIn || creatingDifficulty !== "";
 
   const outerStyle = {
     minHeight: "calc(100vh - 72px)",
@@ -118,6 +124,7 @@ export default function GamesPage() {
     color: "#ffffff",
     fontWeight: "700",
     cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.75 : 1,
   });
 
   const warningStyle = {
@@ -174,7 +181,7 @@ export default function GamesPage() {
   };
 
   return (
-    <section style={outerStyle}>
+    <div style={outerStyle}>
       <div style={pageStyle}>
         <h1 style={titleStyle}>Game Selection</h1>
         <p style={subtitleStyle}>
@@ -183,7 +190,8 @@ export default function GamesPage() {
 
         {!isLoggedIn ? (
           <div style={warningStyle}>
-            You can view existing games while logged out, but you must log in to create a new game.
+            You can view existing games while logged out, but you must log in to
+            create a new game.
           </div>
         ) : null}
 
@@ -191,30 +199,24 @@ export default function GamesPage() {
 
         <div style={controlsStyle}>
           <button
-            type="button"
             onClick={() => handleCreateGame("NORMAL")}
-            style={buttonStyle(creatingDifficulty !== "" && creatingDifficulty !== "NORMAL")}
-            disabled={creatingDifficulty !== ""}
+            style={buttonStyle(createButtonsDisabled)}
+            disabled={createButtonsDisabled}
           >
-            {creatingDifficulty === "NORMAL"
-              ? "Creating..."
-              : "Create Normal Game"}
+            {creatingDifficulty === "NORMAL" ? "Creating..." : "Create Normal Game"}
           </button>
 
           <button
-            type="button"
             onClick={() => handleCreateGame("EASY")}
-            style={buttonStyle(creatingDifficulty !== "" && creatingDifficulty !== "EASY")}
-            disabled={creatingDifficulty !== ""}
+            style={buttonStyle(createButtonsDisabled)}
+            disabled={createButtonsDisabled}
           >
-            {creatingDifficulty === "EASY"
-              ? "Creating..."
-              : "Create Easy Game"}
+            {creatingDifficulty === "EASY" ? "Creating..." : "Create Easy Game"}
           </button>
         </div>
 
         {loading ? (
-          <p style={{ color: "#374151" }}>Loading games...</p>
+          <p>Loading games...</p>
         ) : (
           <div style={tableWrapperStyle}>
             <table style={tableStyle}>
@@ -238,9 +240,8 @@ export default function GamesPage() {
                     <tr key={game._id}>
                       <td style={tdStyle}>
                         <button
-                          type="button"
-                          style={linkButtonStyle}
                           onClick={() => navigate(`/game/${game._id}`)}
+                          style={linkButtonStyle}
                         >
                           {game.name}
                         </button>
@@ -256,6 +257,6 @@ export default function GamesPage() {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

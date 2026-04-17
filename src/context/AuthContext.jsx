@@ -16,10 +16,15 @@ export const AuthProvider = ({ children }) => {
     const loadAuthState = async () => {
       try {
         const data = await checkLogin();
-        setUser({
-          username: data.username,
-          wins: data.wins ?? 0,
-        });
+
+        if (data?.success && data?.username) {
+          setUser({
+            username: data.username,
+            wins: data.wins ?? 0,
+          });
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         setUser(null);
       } finally {
@@ -32,19 +37,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (payload) => {
     const data = await loginUser(payload);
+
     setUser({
       username: data.username,
       wins: data.wins ?? 0,
     });
+
     return data;
   };
 
   const register = async (payload) => {
     const data = await registerUser(payload);
+
     setUser({
       username: data.username,
       wins: data.wins ?? 0,
     });
+
     return data;
   };
 
@@ -58,7 +67,7 @@ export const AuthProvider = ({ children }) => {
       user,
       setUser,
       authLoading,
-      isLoggedIn: Boolean(user),
+      isLoggedIn: Boolean(user?.username),
       login,
       register,
       logout,
