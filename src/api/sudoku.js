@@ -1,11 +1,23 @@
 const API_ROOT = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = `${API_ROOT}/sudoku`;
 
+const handleResponse = async (response) => {
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
+};
+
 export const getAllGames = async () => {
   const response = await fetch(API_BASE, {
+    method: "GET",
     credentials: "include",
   });
-  return response.json();
+
+  return handleResponse(response);
 };
 
 export const createGame = async (difficulty) => {
@@ -18,14 +30,16 @@ export const createGame = async (difficulty) => {
     body: JSON.stringify({ difficulty }),
   });
 
-  return response.json();
+  return handleResponse(response);
 };
 
 export const getGameById = async (gameId) => {
   const response = await fetch(`${API_BASE}/${gameId}`, {
+    method: "GET",
     credentials: "include",
   });
-  return response.json();
+
+  return handleResponse(response);
 };
 
 export const updateGame = async (gameId, payload) => {
@@ -38,7 +52,7 @@ export const updateGame = async (gameId, payload) => {
     body: JSON.stringify(payload),
   });
 
-  return response.json();
+  return handleResponse(response);
 };
 
 export const deleteGame = async (gameId) => {
@@ -47,5 +61,5 @@ export const deleteGame = async (gameId) => {
     credentials: "include",
   });
 
-  return response.json();
+  return handleResponse(response);
 };
