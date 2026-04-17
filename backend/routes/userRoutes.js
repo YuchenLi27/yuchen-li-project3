@@ -40,6 +40,7 @@ router.get("/isLoggedIn", async (req, res) => {
       wins: user.wins ?? 0,
     });
   } catch (error) {
+    console.error("isLoggedIn error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to check login status",
@@ -84,6 +85,10 @@ router.post("/register", async (req, res) => {
       wins: 0,
     });
 
+    console.log("Register success, setting cookie for:", newUser.username);
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("cookieOptions:", cookieOptions);
+
     res.cookie("username", newUser.username, cookieOptions);
 
     return res.status(201).json({
@@ -93,6 +98,7 @@ router.post("/register", async (req, res) => {
       wins: newUser.wins,
     });
   } catch (error) {
+    console.error("register error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to register",
@@ -131,6 +137,10 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    console.log("Login success, setting cookie for:", user.username);
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("cookieOptions:", cookieOptions);
+
     res.cookie("username", user.username, cookieOptions);
 
     return res.json({
@@ -140,6 +150,7 @@ router.post("/login", async (req, res) => {
       wins: user.wins ?? 0,
     });
   } catch (error) {
+    console.error("login error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to log in",
@@ -148,6 +159,8 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
+  console.log("Logout, clearing cookie");
+
   res.clearCookie("username", {
     httpOnly: true,
     secure: isProduction,
