@@ -4,19 +4,20 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
+const COOKIE_NAME = "username";
 const isProduction = process.env.NODE_ENV === "production";
 
 const cookieOptions = {
   httpOnly: true,
-  secure: isProduction,
   sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 router.get("/isLoggedIn", async (req, res) => {
   try {
-    const username = req.cookies?.username;
+    const username = req.cookies?.[COOKIE_NAME];
 
     if (!username) {
       return res.status(401).json({
@@ -28,9 +29,16 @@ router.get("/isLoggedIn", async (req, res) => {
     const user = await User.findOne({ username }).select("username wins");
 
     if (!user) {
+      res.clearCookie(COOKIE_NAME, {
+        httpOnly: true,
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
+        path: "/",
+      });
+
       return res.status(401).json({
         success: false,
-        message: "User not found",
+        message: "Invalid session",
       });
     }
 
@@ -43,7 +51,7 @@ router.get("/isLoggedIn", async (req, res) => {
     console.error("isLoggedIn error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to check login status",
+      message: "Server error while checking login status",
     });
   }
 });
@@ -61,10 +69,17 @@ router.post("/register", async (req, res) => {
 
     const trimmedUsername = username.trim();
 
-    if (!trimmedUsername) {
+    if (trimmedUsername.length < 3) {
       return res.status(400).json({
         success: false,
-        message: "Username cannot be empty",
+        message: "Username must be at least 3 characters long",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long",
       });
     }
 
@@ -89,19 +104,19 @@ router.post("/register", async (req, res) => {
     console.log("NODE_ENV:", process.env.NODE_ENV);
     console.log("cookieOptions:", cookieOptions);
 
-    res.cookie("username", newUser.username, cookieOptions);
+    res.cookie(COOKIE_NAME, newUser.username, cookieOptions);
 
     return res.status(201).json({
       success: true,
-      message: "Registered successfully",
+      message: "User registered successfully",
       username: newUser.username,
-      wins: newUser.wins,
+      wins: newUser.wins ?? 0,
     });
   } catch (error) {
     console.error("register error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to register",
+      message: "Server error while registering user",
     });
   }
 });
@@ -128,9 +143,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const passwordMatches = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!passwordMatches) {
+    if (!isMatch) {
       return res.status(401).json({
         success: false,
         message: "Invalid username or password",
@@ -141,11 +156,11 @@ router.post("/login", async (req, res) => {
     console.log("NODE_ENV:", process.env.NODE_ENV);
     console.log("cookieOptions:", cookieOptions);
 
-    res.cookie("username", user.username, cookieOptions);
+    res.cookie(COOKIE_NAME, user.username, cookieOptions);
 
     return res.json({
       success: true,
-      message: "Logged in successfully",
+      message: "Login successful",
       username: user.username,
       wins: user.wins ?? 0,
     });
@@ -153,7 +168,7 @@ router.post("/login", async (req, res) => {
     console.error("login error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to log in",
+      message: "Server error while logging in",
     });
   }
 });
@@ -161,10 +176,10 @@ router.post("/login", async (req, res) => {
 router.post("/logout", (req, res) => {
   console.log("Logout, clearing cookie");
 
-  res.clearCookie("username", {
+  res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
     path: "/",
   });
 
