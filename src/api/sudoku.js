@@ -1,5 +1,7 @@
-const API_ROOT = import.meta.env.VITE_API_BASE_URL;
-const API_BASE = `${API_ROOT}/sudoku`;
+const API_BASE =
+  import.meta.env.MODE === "development"
+    ? `${import.meta.env.VITE_API_BASE_URL}/sudoku`
+    : "/api/sudoku";
 
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -22,6 +24,7 @@ export const getAllGames = async () => {
 
 export const createGame = async (difficulty) => {
   console.log("CREATE GAME CALLED");
+
   const response = await fetch(API_BASE, {
     method: "POST",
     headers: {

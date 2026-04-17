@@ -1,5 +1,7 @@
-const API_ROOT = import.meta.env.VITE_API_BASE_URL;
-const API_BASE = `${API_ROOT}/highscore`;
+const API_BASE =
+  import.meta.env.MODE === "development"
+    ? `${import.meta.env.VITE_API_BASE_URL}/highscore`
+    : "/api/highscore";
 
 const handleResponse = async (response) => {
   const data = await response.json();
