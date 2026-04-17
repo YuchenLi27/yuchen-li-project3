@@ -21,6 +21,7 @@ export const getAllGames = async () => {
 };
 
 export const createGame = async (difficulty) => {
+  console.log("CREATE GAME CALLED");
   const response = await fetch(API_BASE, {
     method: "POST",
     headers: {
