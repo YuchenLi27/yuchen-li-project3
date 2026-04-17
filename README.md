@@ -1,202 +1,192 @@
-# 📘 Sudoku Game (React + State Management)
+# Sudoku Fullstack App
+
+A full-stack Sudoku web application built with React, Vite, Express, MongoDB, and Mongoose.
 
 ## Live Demo
-Render Deployment: https://sudoku-react-qv9m.onrender.com  
-GitHub Repository: https://github.com/YuchenLi27/yuchen-li-project2   
+- Deployed App:
+- GitHub Repository: https://github.com/YuchenLi27/yuchen-li-project3
 
 ## Overview
 
-This project is a single-player Sudoku game built with React, React Router, and Context API (useReducer) for state management.
+This project is a full-stack Sudoku game that allows users to register, log in, create games, continue saved games, track time, and view a persistent high score leaderboard.
 
-## The application supports two difficulty levels:
+The app supports:
+- Easy mode (6×6 board)
+- Normal mode (9×9 board)
 
-Easy (6×6 board)
-Normal (9×9 board)
+Unlike the previous frontend-only version, this project stores users, games, progress, and wins in MongoDB. Authentication is handled with cookies, and the frontend communicates with backend REST APIs.
 
-Users can play Sudoku with real-time validation, timer tracking, and additional features such as hints and persistent state.
+## Features
 
-### Features
-Core Gameplay
-Two game modes:
-Easy (6×6)
-Normal (9×9)
+### Core Gameplay
+- Easy (6×6) and Normal (9×9) Sudoku modes
+- Pre-filled cells based on difficulty
+- Editable cells for user input
+- Real-time conflict highlighting
+- Game completion detection
+- Reset game functionality
+- Timer tracking during gameplay
+- Progress auto-save while playing
 
-Pre-filled cells (givens) based on difficulty
-Editable cells for user input
-Input validation (only valid number ranges allowed)
-Invalid moves are highlighted
-Game completion detection
-Board locks after completion
-“Congratulations” message displayed upon success
+### User System
+- Register with username and password
+- Log in with username and password
+- Cookie-based authentication
+- Log out
+- Logged-in users can create games and save progress
 
-### Game Controls
-New Game → generates a new puzzle
-Reset → resets current board to initial state
-Timer → tracks elapsed time during gameplay
+### Game Management
+- Create a new Sudoku game from the selection page
+- Load and continue existing games
+- Each game has:
+  - a unique generated name
+  - difficulty
+  - creator username
+  - creation date
+- Delete a game if you are the creator
 
-### Navigation Pages
-/ → Home page
-/games → Game selection page
-/games/easy → Easy mode
-/games/normal → Normal mode
-/rules → Game rules + credits
-/scores → Mock leaderboard
-/login → Mock login form
-/register → Mock registration form
+### High Scores
+- Persistent leaderboard stored in MongoDB
+- Wins are recorded when a logged-in user completes a game
+- Scores are sorted from most wins to least wins
 
-### UI & Styling
-Responsive layout
-Visual differentiation for:
-Locked cells
-Invalid cells
-Hint cells
-Clean and consistent page structure using layout + navbar
-Tech Stack
-React (Vite)
-React Router
-Context API + useReducer
-JavaScript (ES6+)
-CSS (custom styling)
+## Pages
 
-### Project Structure
-src/
-  components/
-    Navbar.jsx
-    Layout.jsx
-    SudokuBoard.jsx
-    SudokuCell.jsx
-    Timer.jsx
+- `/` → Home page
+- `/games` → Game selection page
+- `/game/:gameId` → Play a specific game
+- `/rules` → Rules and credits page
+- `/scores` → High score leaderboard
+- `/login` → Login page
+- `/register` → Register page
 
-  pages/
-    HomePage.jsx
-    GamesPage.jsx
-    EasyGamePage.jsx
-    NormalGamePage.jsx
-    RulesPage.jsx
-    ScoresPage.jsx
-    LoginPage.jsx
-    RegisterPage.jsx
+## Tech Stack
 
-  context/
-    GameContext.jsx
+### Frontend
+- React
+- Vite
+- React Router
+- JavaScript
+- CSS
 
-  utils/
-    puzzles.js
+### Backend
+- Node.js
+- Express
+- MongoDB
+- Mongoose
+- cookie-parser
+- bcryptjs
+- cors
+- dotenv
 
-  styles/
-    global.css
+## Project Structure
 
-## State Management
+```txt
+yuchen-li-project3/
+├── backend/
+│   ├── middleware/
+│   ├── models/
+│   │   ├── SudokuGame.js
+│   │   └── User.js
+│   ├── routes/
+│   │   ├── highscoreRoutes.js
+│   │   ├── sudokuRoutes.js
+│   │   └── userRoutes.js
+│   └── utils/
+├── public/
+├── src/
+│   ├── api/
+│   ├── components/
+│   │   ├── Layout.jsx
+│   │   ├── Navbar.jsx
+│   │   └── Timer.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx
+│   ├── pages/
+│   │   ├── GamePage.jsx
+│   │   ├── GamesPage.jsx
+│   │   ├── HomePage.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   ├── RulesPage.jsx
+│   │   └── ScoresPage.jsx
+│   └── styles/
+├── server.js
+├── package.json
+└── README.md
 
-This project uses React Context + useReducer to manage global game state.
+REST API Summary
+User APIs
+GET /api/user/isLoggedIn
+POST /api/user/login
+POST /api/user/register
+POST /api/user/logout
+Sudoku APIs
+GET /api/sudoku
+POST /api/sudoku
+GET /api/sudoku/:gameId
+PUT /api/sudoku/:gameId
+DELETE /api/sudoku/:gameId
+High Score APIs
+GET /api/highscore
+POST /api/highscore
+GET /api/highscore/:gameId
 
-State includes:
-mode
-initialBoard
-currentBoard
-solution
-invalidCells
-isComplete
-elapsedTime
-hintCell
-Actions include:
-START_GAME
-UPDATE_CELL
-RESET_GAME
-TICK
-SET_HINT
-CLEAR_HINT
+Local Development
+1. Clone the repo
+git clone https://github.com/YuchenLi27/yuchen-li-project3.git
 
-All logic related to state transitions is centralized in:
-
-src/context/GameContext.jsx
-How to Run Locally
-git clone https://github.com/YuchenLi27/yuchen-li-project2.git
-cd yuchen-li-project2
+2. Install dependencies
 npm install
+
+3. Create a local .env file
+PORT=5050
+MONGO_URI=mongodb://127.0.0.1:27017/sudoku_project3
+CLIENT_URL=http://localhost:5173
+
+4. Start the backend
+npm run server
+
+5. Start the frontend
 npm run dev
 
+Writeup
+1. What challenges did you face while making this app?
 
-# 📝 Writeup
-### 1. What challenges did you face?
+One major challenge was upgrading a frontend-only Sudoku project into a full-stack application. This required redesigning how game state was handled so that progress, completed games, user accounts, and high scores could persist in MongoDB instead of only existing in React state.
 
-One of the main challenges was implementing a valid Sudoku generator instead of using pre-defined puzzles.
-Ensuring that each generated puzzle has exactly one unique solution required combining backtracking with a solution-counting mechanism.
+Another challenge was integrating authentication cleanly. I needed to support registration, login, logout, and cookie-based session checks while keeping the frontend and backend consistent. I also had to debug issues caused by migrating from old project2 components into a new project3 architecture.
 
-Another challenge was managing global state cleanly. Initially, it was tempting to store state inside components, but this quickly became unmanageable. Refactoring everything into a Context + reducer architecture improved maintainability but required careful planning of actions and state structure.
+A third challenge was preserving gameplay quality while adding backend persistence. Features such as timer tracking, conflict highlighting, reset behavior, auto-save, leaderboard updates, and delete-game logic all had to work together without breaking the Sudoku experience.
 
-Handling validation (highlighting invalid cells dynamically) was also non-trivial, since each input needed to be checked against row, column, and sub-grid constraints.
+2. Given more time, what additional features or design changes would you make?
 
-### 2. If you had more time, what would you improve?
+If I had more time, I would improve the visual polish of the app, especially animations, responsive layout details, and more refined styling for the game board and forms.
 
-If given more time, I would:
+I would also add richer gameplay features such as pencil marks, multiple saved sessions per user, more difficulty levels, and a custom puzzle creation mode.
 
-Improve UI/UX:
-Add better animations and transitions
-Improve mobile responsiveness further
-Add advanced gameplay features:
-Difficulty scaling beyond easy/normal
-Pencil marks (candidate numbers)
-Improve performance of puzzle generation
-Add real authentication and persistent leaderboard
-Write unit tests for core logic (especially puzzle generation)
+On the backend side, I would add stronger admin tooling, more validation, better error handling, and automated tests for authentication, Sudoku APIs, and leaderboard logic.
 
-### 3. What assumptions did you make?
-Users will input only numeric values (validated in input field)
-Easy mode uses a smaller board (6×6) instead of standard 9×9
-Scores page and authentication pages are mock implementations
-Timer runs continuously once a game starts
-### 4. How long did you spend on this project?
+3. What assumptions did you make while working on this assignment?
 
-Approximately 50 hours, including:
+I assumed that users must be logged in to create new games and save named progress. I also assumed that a 6×6 version is acceptable as the easy mode while 9×9 serves as the normal mode.
 
-Designing architecture
-Implementing puzzle generation
-Building UI components
-Debugging and refining state management
-### 5. Bonus Features Implemented
+I assumed that the app should prioritize persistence and usability over advanced multiplayer or social features. I also assumed that the unique generated game name requirement could be satisfied by generating three-word names from a large word list and checking the database for collisions before saving.
 
+4. How long did this assignment take to complete?
 
-## ✅ Bonus 1: Local Storage
+Approximately 60–70 hours.
 
-The game state is saved to localStorage so that progress persists after refresh.
+This time included:
 
-Implementation:
-
-File: src/context/GameContext.jsx
-Functions:
-loadSavedState()
-localStorage.setItem(...)
-localStorage.removeItem(...)
-## ✅ Bonus 2: Backtracking with Unique Solution
-
-The Sudoku board is generated dynamically using backtracking.
-
-Implementation:
-
-File: src/utils/puzzles.js
-Key functions:
-fillBoard() → generate full solution
-countSolutions() → ensure uniqueness
-createPuzzleFromSolution() → remove numbers safely
-generateGame() → full pipeline
-## ✅ Bonus 3: Hint System
-
-Provides a hint by identifying a correct value for an incorrect or empty cell.
-
-Implementation:
-
-File: src/context/GameContext.jsx
-Function: findHintCell()
-State: hintCell
-UI: Highlighted in SudokuCell.jsx
-
-
-## Final Notes
-
-This project demonstrates:
-
-Proper use of React architecture
-Clean separation of concerns
-Implementation of non-trivial algorithms
-Practical state management with Context API
+refactoring project2 into a project3 full-stack structure
+building Express APIs
+connecting MongoDB with Mongoose
+implementing authentication and cookies
+integrating the frontend with backend routes
+fixing gameplay regressions during migration
+debugging deployment and environment variable issues
+5. What bonus points did you accomplish?
+Password encryption: user passwords are hashed before being stored in the database
+Delete game: creators can delete their own games, and related recorded wins are updated accordingly.
+AI Survey.
