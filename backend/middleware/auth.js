@@ -1,55 +1,28 @@
-const API_ROOT = import.meta.env.VITE_API_BASE_URL;
-const API_BASE = `${API_ROOT}/user`;
+import User from "../models/User.js";
 
-const handleResponse = async (response) => {
-  const data = await response.json();
+const requireAuth = async (req, res, next) => {
+  try {
+    const username = req.cookies?.username;
 
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
+    if (!username) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid login session" });
+    }
+
+    req.user = {
+      username: user.username,
+      userId: user._id,
+    };
+
+    next();
+  } catch (error) {
+    return res.status(500).json({ message: "Authentication check failed" });
   }
-
-  return data;
 };
 
-export const checkLogin = async () => {
-  const response = await fetch(`${API_BASE}/isLoggedIn`, {
-    credentials: "include",
-  });
-
-  return handleResponse(response);
-};
-
-export const loginUser = async (payload) => {
-  const response = await fetch(`${API_BASE}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-
-  return handleResponse(response);
-};
-
-export const registerUser = async (payload) => {
-  const response = await fetch(`${API_BASE}/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-
-  return handleResponse(response);
-};
-
-export const logoutUser = async () => {
-  const response = await fetch(`${API_BASE}/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-  return handleResponse(response);
-};
+export default requireAuth;
