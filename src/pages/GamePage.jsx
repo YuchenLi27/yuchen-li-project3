@@ -137,8 +137,13 @@ export default function GamePage() {
         setSaveMessage("");
 
         const data = await getGameById(gameId);
-        const loadedGame = data.game;
-        const loadedElapsedSeconds = Number(loadedGame.elapsedSeconds ?? 0);
+        const loadedGame = data?.game;
+
+        if (!loadedGame) {
+        throw new Error("Game data was not returned by the server.");
+        }
+
+const loadedElapsedSeconds = Number(loadedGame.elapsedSeconds ?? 0);
 
         setGame(loadedGame);
         setBoard(cloneBoard(loadedGame.board));

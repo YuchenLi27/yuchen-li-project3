@@ -4,18 +4,19 @@ import User from "../models/User.js";
 
 const router = express.Router();
 
-const COOKIE_NAME = "username";
+const isProduction = process.env.NODE_ENV === "production";
 
 const cookieOptions = {
   httpOnly: true,
-  sameSite: "lax",
-  secure: false,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 router.get("/isLoggedIn", async (req, res) => {
   try {
-    const username = req.cookies?.[COOKIE_NAME];
+    const username = req.cookies?.username;
 
     if (!username) {
       return res.status(401).json({
@@ -27,22 +28,21 @@ router.get("/isLoggedIn", async (req, res) => {
     const user = await User.findOne({ username }).select("username wins");
 
     if (!user) {
-      res.clearCookie(COOKIE_NAME);
       return res.status(401).json({
         success: false,
-        message: "Invalid session",
+        message: "User not found",
       });
     }
 
     return res.json({
       success: true,
       username: user.username,
-      wins: user.wins,
+      wins: user.wins ?? 0,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Server error while checking login status",
+      message: "Failed to check login status",
     });
   }
 });
@@ -60,17 +60,10 @@ router.post("/register", async (req, res) => {
 
     const trimmedUsername = username.trim();
 
-    if (trimmedUsername.length < 3) {
+    if (!trimmedUsername) {
       return res.status(400).json({
         success: false,
-        message: "Username must be at least 3 characters long",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters long",
+        message: "Username cannot be empty",
       });
     }
 
@@ -88,20 +81,21 @@ router.post("/register", async (req, res) => {
     const newUser = await User.create({
       username: trimmedUsername,
       password: hashedPassword,
+      wins: 0,
     });
 
-    res.cookie(COOKIE_NAME, newUser.username, cookieOptions);
+    res.cookie("username", newUser.username, cookieOptions);
 
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "Registered successfully",
       username: newUser.username,
       wins: newUser.wins,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Server error while registering user",
+      message: "Failed to register",
     });
   }
 });
@@ -128,33 +122,38 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const passwordMatches = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
+    if (!passwordMatches) {
       return res.status(401).json({
         success: false,
         message: "Invalid username or password",
       });
     }
 
-    res.cookie(COOKIE_NAME, user.username, cookieOptions);
+    res.cookie("username", user.username, cookieOptions);
 
     return res.json({
       success: true,
-      message: "Login successful",
+      message: "Logged in successfully",
       username: user.username,
-      wins: user.wins,
+      wins: user.wins ?? 0,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Server error while logging in",
+      message: "Failed to log in",
     });
   }
 });
 
 router.post("/logout", (req, res) => {
-  res.clearCookie(COOKIE_NAME);
+  res.clearCookie("username", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+  });
 
   return res.json({
     success: true,

@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { createGame, getAllGames } from "../api/sudoku";
 import { useAuth } from "../context/AuthContext";
+
+function formatDate(dateString) {
+  if (!dateString) {
+    return "";
+  }
+
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function GamesPage() {
   const navigate = useNavigate();
@@ -18,9 +30,17 @@ export default function GamesPage() {
       setErrorMessage("");
 
       const data = await getAllGames();
-      setGames(data.games || []);
+
+      if (!data?.success) {
+        setErrorMessage(data?.message || "Failed to load games.");
+        setGames([]);
+        return;
+      }
+
+      setGames(Array.isArray(data.games) ? data.games : []);
     } catch (error) {
       setErrorMessage(error.message || "Failed to load games.");
+      setGames([]);
     } finally {
       setLoading(false);
     }
@@ -32,31 +52,26 @@ export default function GamesPage() {
 
   const handleCreateGame = async (difficulty) => {
     if (!isLoggedIn) {
+      setErrorMessage("You must be logged in to create a game.");
       return;
     }
 
     try {
-      setCreatingDifficulty(difficulty);
       setErrorMessage("");
+      setCreatingDifficulty(difficulty);
 
       const data = await createGame(difficulty);
+
+      if (!data?.success || !data?.gameId) {
+        setErrorMessage(data?.message || "Failed to create game.");
+        return;
+      }
+
       navigate(`/game/${data.gameId}`);
     } catch (error) {
       setErrorMessage(error.message || "Failed to create game.");
     } finally {
       setCreatingDifficulty("");
-    }
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch (error) {
-      return "Unknown date";
     }
   };
 
@@ -67,7 +82,7 @@ export default function GamesPage() {
   };
 
   const pageStyle = {
-    maxWidth: "960px",
+    maxWidth: "1100px",
     margin: "0 auto",
     backgroundColor: "#ffffff",
     borderRadius: "20px",
@@ -78,115 +93,108 @@ export default function GamesPage() {
   const titleStyle = {
     fontSize: "32px",
     fontWeight: "800",
-    marginBottom: "12px",
+    marginBottom: "8px",
     color: "#111111",
   };
 
-  const descriptionStyle = {
+  const subtitleStyle = {
+    color: "#4b5563",
+    marginBottom: "24px",
     fontSize: "16px",
-    lineHeight: "1.6",
-    marginBottom: "12px",
-    color: "#333333",
   };
 
-  const noteStyle = {
+  const controlsStyle = {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
     marginBottom: "24px",
-    padding: "12px 14px",
+  };
+
+  const buttonStyle = (disabled = false) => ({
+    padding: "12px 18px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: disabled ? "#9ca3af" : "#111111",
+    color: "#ffffff",
+    fontWeight: "700",
+    cursor: disabled ? "not-allowed" : "pointer",
+  });
+
+  const warningStyle = {
+    marginBottom: "18px",
+    padding: "14px 16px",
     borderRadius: "10px",
     backgroundColor: "#fff7e6",
     color: "#7a4b00",
     fontWeight: "600",
   };
 
-  const actionsStyle = {
-    display: "flex",
-    gap: "16px",
-    flexWrap: "wrap",
-    marginBottom: "32px",
+  const errorStyle = {
+    marginBottom: "18px",
+    padding: "14px 16px",
+    borderRadius: "10px",
+    backgroundColor: "#fdecea",
+    color: "#b00020",
+    fontWeight: "600",
   };
 
-  const buttonStyle = (disabled) => ({
-    padding: "14px 22px",
-    borderRadius: "12px",
-    border: "none",
-    backgroundColor: disabled ? "#9ca3af" : "#111111",
-    color: "#ffffff",
+  const tableWrapperStyle = {
+    overflowX: "auto",
+    marginTop: "8px",
+  };
+
+  const tableStyle = {
+    width: "100%",
+    borderCollapse: "collapse",
     fontSize: "15px",
-    fontWeight: "700",
-    cursor: disabled ? "not-allowed" : "pointer",
-  });
-
-  const sectionTitleStyle = {
-    fontSize: "24px",
-    fontWeight: "800",
-    marginBottom: "16px",
-    color: "#111111",
   };
 
-  const listStyle = {
-    display: "grid",
-    gap: "16px",
+  const thStyle = {
+    textAlign: "left",
+    padding: "14px 12px",
+    borderBottom: "2px solid #d1d5db",
+    color: "#111827",
+    backgroundColor: "#f9fafb",
   };
 
-  const cardStyle = {
-    border: "1px solid #dbe1ea",
-    borderRadius: "16px",
-    padding: "20px",
-    backgroundColor: "#ffffff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-    transition: "transform 0.15s ease, box-shadow 0.15s ease",
-  };
-
-  const gameTitleStyle = {
-    fontSize: "22px",
-    fontWeight: "800",
-    marginBottom: "12px",
-    color: "#111111",
-  };
-
-  const metaStyle = {
-    marginBottom: "8px",
+  const tdStyle = {
+    padding: "14px 12px",
+    borderBottom: "1px solid #e5e7eb",
     color: "#374151",
-    fontSize: "15px",
   };
 
-  const linkStyle = {
-    display: "inline-block",
-    marginTop: "14px",
-    textDecoration: "none",
+  const linkButtonStyle = {
+    background: "none",
+    border: "none",
+    padding: 0,
+    margin: 0,
     color: "#0a58ca",
     fontWeight: "700",
-  };
-
-  const errorStyle = {
-    color: "#b00020",
-    marginBottom: "16px",
-    fontWeight: "600",
+    cursor: "pointer",
   };
 
   return (
     <section style={outerStyle}>
       <div style={pageStyle}>
-        <h1 style={titleStyle}>Games</h1>
-        <p style={descriptionStyle}>
+        <h1 style={titleStyle}>Game Selection</h1>
+        <p style={subtitleStyle}>
           Create a new Sudoku game or continue an existing one.
         </p>
 
         {!isLoggedIn ? (
-          <div style={noteStyle}>
-            You can view existing games while logged out, but creating or
-            playing games requires login.
+          <div style={warningStyle}>
+            You can view existing games while logged out, but you must log in to create a new game.
           </div>
         ) : null}
 
-        {errorMessage ? <p style={errorStyle}>{errorMessage}</p> : null}
+        {errorMessage ? <div style={errorStyle}>{errorMessage}</div> : null}
 
-        <div style={actionsStyle}>
+        <div style={controlsStyle}>
           <button
             type="button"
-            style={buttonStyle(!isLoggedIn || creatingDifficulty !== "")}
-            disabled={!isLoggedIn || creatingDifficulty !== ""}
             onClick={() => handleCreateGame("NORMAL")}
+            style={buttonStyle(creatingDifficulty !== "" && creatingDifficulty !== "NORMAL")}
+            disabled={creatingDifficulty !== ""}
           >
             {creatingDifficulty === "NORMAL"
               ? "Creating..."
@@ -195,67 +203,56 @@ export default function GamesPage() {
 
           <button
             type="button"
-            style={buttonStyle(!isLoggedIn || creatingDifficulty !== "")}
-            disabled={!isLoggedIn || creatingDifficulty !== ""}
             onClick={() => handleCreateGame("EASY")}
+            style={buttonStyle(creatingDifficulty !== "" && creatingDifficulty !== "EASY")}
+            disabled={creatingDifficulty !== ""}
           >
-            {creatingDifficulty === "EASY" ? "Creating..." : "Create Easy Game"}
+            {creatingDifficulty === "EASY"
+              ? "Creating..."
+              : "Create Easy Game"}
           </button>
         </div>
 
-        <h2 style={sectionTitleStyle}>Available Games</h2>
-
         {loading ? (
           <p style={{ color: "#374151" }}>Loading games...</p>
-        ) : games.length === 0 ? (
-          <p style={{ color: "#374151" }}>No games yet. Create your first one.</p>
         ) : (
-          <div style={listStyle}>
-            {games.map((game) => (
-              <article
-                key={game._id}
-                style={cardStyle}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.transform = "translateY(-2px)";
-                  event.currentTarget.style.boxShadow =
-                    "0 8px 20px rgba(0,0,0,0.10)";
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.transform = "translateY(0)";
-                  event.currentTarget.style.boxShadow =
-                    "0 4px 12px rgba(0,0,0,0.06)";
-                }}
-              >
-                <h3 style={gameTitleStyle}>{game.name}</h3>
-
-                <p style={metaStyle}>
-                  <strong>Difficulty:</strong>{" "}
-                  <span
-                    style={{
-                      color: game.difficulty === "EASY" ? "#2e7d32" : "#c62828",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {game.difficulty}
-                  </span>
-                </p>
-
-                <p style={metaStyle}>
-                  <strong>Created By:</strong>{" "}
-                  <span style={{ color: "#0a58ca", fontWeight: "700" }}>
-                    {game.createdBy}
-                  </span>
-                </p>
-
-                <p style={metaStyle}>
-                  <strong>Created At:</strong> {formatDate(game.createdAt)}
-                </p>
-
-                <Link to={`/game/${game._id}`} style={linkStyle}>
-                  View Game
-                </Link>
-              </article>
-            ))}
+          <div style={tableWrapperStyle}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Game Name</th>
+                  <th style={thStyle}>Difficulty</th>
+                  <th style={thStyle}>Created By</th>
+                  <th style={thStyle}>Created At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {games.length === 0 ? (
+                  <tr>
+                    <td style={tdStyle} colSpan="4">
+                      No games found.
+                    </td>
+                  </tr>
+                ) : (
+                  games.map((game) => (
+                    <tr key={game._id}>
+                      <td style={tdStyle}>
+                        <button
+                          type="button"
+                          style={linkButtonStyle}
+                          onClick={() => navigate(`/game/${game._id}`)}
+                        >
+                          {game.name}
+                        </button>
+                      </td>
+                      <td style={tdStyle}>{game.difficulty}</td>
+                      <td style={tdStyle}>{game.createdBy}</td>
+                      <td style={tdStyle}>{formatDate(game.createdAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

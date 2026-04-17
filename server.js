@@ -13,9 +13,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+connectDB();
+
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigin,
     credentials: true,
   })
 );
@@ -24,24 +28,25 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, message: "Server is running" });
+  res.json({
+    success: true,
+    message: "Server is running",
+    clientUrl: allowedOrigin,
+  });
 });
 
 app.use("/api/user", userRoutes);
 app.use("/api/sudoku", sudokuRoutes);
 app.use("/api/highscore", highscoreRoutes);
 
-const startServer = async () => {
-  try {
-    await connectDB();
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
-  }
-};
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`CORS allowed origin: ${allowedOrigin}`);
+});
