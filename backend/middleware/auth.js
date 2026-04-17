@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:5050/api/user";
+const API_ROOT = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = `${API_ROOT}/user`;
 
 const handleResponse = async (response) => {
   const data = await response.json();
