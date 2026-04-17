@@ -1,22 +1,11 @@
-const API_BASE = "http://localhost:5050/api/user";
+const API_ROOT = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = `${API_ROOT}/user`;
 
-const handleResponse = async (response) => {
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
-  }
-
-  return data;
-};
-
-// ✅ 必须存在这个函数
 export const checkLogin = async () => {
   const response = await fetch(`${API_BASE}/isLoggedIn`, {
     credentials: "include",
   });
-
-  return handleResponse(response);
+  return response.json();
 };
 
 export const loginUser = async (payload) => {
@@ -29,7 +18,7 @@ export const loginUser = async (payload) => {
     body: JSON.stringify(payload),
   });
 
-  return handleResponse(response);
+  return response.json();
 };
 
 export const registerUser = async (payload) => {
@@ -42,7 +31,7 @@ export const registerUser = async (payload) => {
     body: JSON.stringify(payload),
   });
 
-  return handleResponse(response);
+  return response.json();
 };
 
 export const logoutUser = async () => {
@@ -51,5 +40,5 @@ export const logoutUser = async () => {
     credentials: "include",
   });
 
-  return handleResponse(response);
+  return response.json();
 };

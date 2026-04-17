@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { deleteGame, getGameById, updateGame } from "../api/sudoku";
 import { updateHighscore } from "../api/highscore";
 import { useAuth } from "../context/AuthContext";
+import Timer from "../components/Timer";
 
 const cloneBoard = (board) => board.map((row) => [...row]);
 
@@ -42,6 +43,74 @@ const getSubgridConfig = (boardSize) => {
   return { subgridRows: 3, subgridCols: 3 };
 };
 
+const buildConflictSet = (board, subgridRows, subgridCols) => {
+  const conflicts = new Set();
+
+  if (!Array.isArray(board) || board.length === 0) {
+    return conflicts;
+  }
+
+  const size = board.length;
+
+  const markDuplicateGroup = (cells) => {
+    const positionsByValue = new Map();
+
+    for (const [row, col] of cells) {
+      const value = Number(board[row][col]);
+
+      if (!Number.isInteger(value) || value === 0) {
+        continue;
+      }
+
+      if (!positionsByValue.has(value)) {
+        positionsByValue.set(value, []);
+      }
+
+      positionsByValue.get(value).push([row, col]);
+    }
+
+    for (const [, positions] of positionsByValue.entries()) {
+      if (positions.length > 1) {
+        for (const [row, col] of positions) {
+          conflicts.add(`${row}-${col}`);
+        }
+      }
+    }
+  };
+
+  for (let row = 0; row < size; row += 1) {
+    const rowCells = [];
+    for (let col = 0; col < size; col += 1) {
+      rowCells.push([row, col]);
+    }
+    markDuplicateGroup(rowCells);
+  }
+
+  for (let col = 0; col < size; col += 1) {
+    const colCells = [];
+    for (let row = 0; row < size; row += 1) {
+      colCells.push([row, col]);
+    }
+    markDuplicateGroup(colCells);
+  }
+
+  for (let startRow = 0; startRow < size; startRow += subgridRows) {
+    for (let startCol = 0; startCol < size; startCol += subgridCols) {
+      const boxCells = [];
+
+      for (let row = startRow; row < startRow + subgridRows; row += 1) {
+        for (let col = startCol; col < startCol + subgridCols; col += 1) {
+          boxCells.push([row, col]);
+        }
+      }
+
+      markDuplicateGroup(boxCells);
+    }
+  }
+
+  return conflicts;
+};
+
 export default function GamePage() {
   const { gameId } = useParams();
   const navigate = useNavigate();
@@ -49,6 +118,7 @@ export default function GamePage() {
 
   const [game, setGame] = useState(null);
   const [board, setBoard] = useState([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -57,6 +127,7 @@ export default function GamePage() {
 
   const hasLoadedInitialData = useRef(false);
   const isRecordingWinRef = useRef(false);
+  const lastSavedTimerRef = useRef(0);
 
   useEffect(() => {
     const loadGame = async () => {
@@ -67,9 +138,12 @@ export default function GamePage() {
 
         const data = await getGameById(gameId);
         const loadedGame = data.game;
+        const loadedElapsedSeconds = Number(loadedGame.elapsedSeconds ?? 0);
 
         setGame(loadedGame);
         setBoard(cloneBoard(loadedGame.board));
+        setElapsedSeconds(loadedElapsedSeconds);
+        lastSavedTimerRef.current = loadedElapsedSeconds;
 
         const currentUsername = user?.username;
         const alreadyCompleted =
@@ -90,6 +164,14 @@ export default function GamePage() {
   const boardSize = game?.board?.length ?? 0;
   const { subgridRows, subgridCols } = getSubgridConfig(boardSize);
 
+  const conflictCells = useMemo(() => {
+    if (!board.length) {
+      return new Set();
+    }
+
+    return buildConflictSet(board, subgridRows, subgridCols);
+  }, [board, subgridRows, subgridCols]);
+
   const isCompleted = useMemo(() => {
     if (!game || !board.length || !game.solution) {
       return false;
@@ -98,29 +180,77 @@ export default function GamePage() {
     return boardsAreEqual(board, game.solution);
   }, [board, game]);
 
-  const canDeleteGame = isLoggedIn && user?.username && game?.createdBy === user.username;
+  const canDeleteGame =
+    isLoggedIn && user?.username && game?.createdBy === user.username;
+
+  useEffect(() => {
+    if (!game || !isLoggedIn || loading || isCompleted) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setElapsedSeconds((previousValue) => previousValue + 1);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [game, isLoggedIn, loading, isCompleted]);
 
   useEffect(() => {
     if (!game || !isLoggedIn || !hasLoadedInitialData.current) {
-      return;
+      return undefined;
     }
 
     if (boardsAreEqual(board, game.board)) {
-      return;
+      return undefined;
     }
 
-    const timeoutId = setTimeout(async () => {
+    const timeoutId = window.setTimeout(async () => {
       try {
-        const data = await updateGame(gameId, { board });
+        const data = await updateGame(gameId, { board, elapsedSeconds });
         setGame(data.game);
+        lastSavedTimerRef.current = Number(
+          data.game.elapsedSeconds ?? elapsedSeconds
+        );
         setSaveMessage("Progress auto-saved.");
       } catch (error) {
         setErrorMessage(error.message || "Failed to auto-save progress.");
       }
     }, 500);
 
-    return () => clearTimeout(timeoutId);
-  }, [board, game, gameId, isLoggedIn]);
+    return () => window.clearTimeout(timeoutId);
+  }, [board, elapsedSeconds, game, gameId, isLoggedIn]);
+
+  useEffect(() => {
+    if (!game || !isLoggedIn || !hasLoadedInitialData.current || isCompleted) {
+      return undefined;
+    }
+
+    if (elapsedSeconds <= 0) {
+      return undefined;
+    }
+
+    if (elapsedSeconds === lastSavedTimerRef.current) {
+      return undefined;
+    }
+
+    if (elapsedSeconds % 10 !== 0) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const data = await updateGame(gameId, { elapsedSeconds });
+        setGame(data.game);
+        lastSavedTimerRef.current = Number(
+          data.game.elapsedSeconds ?? elapsedSeconds
+        );
+      } catch (error) {
+        setErrorMessage(error.message || "Failed to save timer.");
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [elapsedSeconds, game, gameId, isLoggedIn, isCompleted]);
 
   useEffect(() => {
     const recordCompletion = async () => {
@@ -139,6 +269,12 @@ export default function GamePage() {
 
       try {
         isRecordingWinRef.current = true;
+
+        await updateGame(gameId, {
+          board,
+          elapsedSeconds,
+        });
+
         const highscoreData = await updateHighscore({ gameId });
 
         setUser((prev) => {
@@ -155,8 +291,16 @@ export default function GamePage() {
         const refreshedGameData = await getGameById(gameId);
         setGame(refreshedGameData.game);
         setBoard(cloneBoard(refreshedGameData.game.board));
+        setElapsedSeconds(
+          Number(refreshedGameData.game.elapsedSeconds ?? elapsedSeconds)
+        );
+        lastSavedTimerRef.current = Number(
+          refreshedGameData.game.elapsedSeconds ?? elapsedSeconds
+        );
         setHasRecordedWin(true);
-        setSaveMessage("Game completed successfully. Your win has been recorded.");
+        setSaveMessage(
+          "Game completed successfully. Your win has been recorded."
+        );
       } catch (error) {
         setErrorMessage(error.message || "Failed to record completed game.");
       } finally {
@@ -165,7 +309,16 @@ export default function GamePage() {
     };
 
     recordCompletion();
-  }, [game, gameId, hasRecordedWin, isCompleted, isLoggedIn, setUser]);
+  }, [
+    board,
+    elapsedSeconds,
+    game,
+    gameId,
+    hasRecordedWin,
+    isCompleted,
+    isLoggedIn,
+    setUser,
+  ]);
 
   const handleCellChange = (rowIndex, colIndex, value) => {
     if (!game || !isLoggedIn) {
@@ -186,7 +339,11 @@ export default function GamePage() {
 
     const numericValue = Number(value);
 
-    if (!Number.isInteger(numericValue) || numericValue < 1 || numericValue > boardSize) {
+    if (
+      !Number.isInteger(numericValue) ||
+      numericValue < 1 ||
+      numericValue > boardSize
+    ) {
       return;
     }
 
@@ -196,12 +353,16 @@ export default function GamePage() {
     setSaveMessage("");
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!game || !isLoggedIn) {
       return;
     }
 
-    setBoard(cloneBoard(game.initialBoard));
+    const resetBoard = cloneBoard(game.initialBoard);
+
+    setBoard(resetBoard);
+    setElapsedSeconds(0);
+    lastSavedTimerRef.current = 0;
     setSaveMessage("");
     setErrorMessage("");
 
@@ -210,6 +371,17 @@ export default function GamePage() {
       currentUsername && game.completedBy?.includes(currentUsername);
 
     setHasRecordedWin(Boolean(alreadyCompleted));
+
+    try {
+      const data = await updateGame(gameId, {
+        board: resetBoard,
+        elapsedSeconds: 0,
+      });
+      setGame(data.game);
+      setSaveMessage("Game has been reset.");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to reset game.");
+    }
   };
 
   const handleDeleteGame = async () => {
@@ -272,6 +444,7 @@ export default function GamePage() {
     display: "flex",
     gap: "12px",
     flexWrap: "wrap",
+    alignItems: "center",
   };
 
   const bottomControlsStyle = {
@@ -327,9 +500,19 @@ export default function GamePage() {
     display: "flex",
   };
 
-  const getCellStyle = (rowIndex, colIndex, isFixed) => {
-    const thickRight = (colIndex + 1) % subgridCols === 0 && colIndex !== boardSize - 1;
-    const thickBottom = (rowIndex + 1) % subgridRows === 0 && rowIndex !== boardSize - 1;
+  const getCellStyle = (rowIndex, colIndex, isFixed, isConflicting) => {
+    const thickRight =
+      (colIndex + 1) % subgridCols === 0 && colIndex !== boardSize - 1;
+    const thickBottom =
+      (rowIndex + 1) % subgridRows === 0 && rowIndex !== boardSize - 1;
+
+    let backgroundColor = isFixed ? "#f3f4f6" : isLoggedIn ? "#ffffff" : "#fafafa";
+    let color = "#111111";
+
+    if (isConflicting) {
+      backgroundColor = "#fdecea";
+      color = "#b00020";
+    }
 
     return {
       width: boardSize === 6 ? "54px" : "46px",
@@ -341,8 +524,8 @@ export default function GamePage() {
       textAlign: "center",
       fontSize: boardSize === 6 ? "22px" : "20px",
       fontWeight: isFixed ? "700" : "500",
-      backgroundColor: isFixed ? "#f3f4f6" : isLoggedIn ? "#ffffff" : "#fafafa",
-      color: "#111111",
+      backgroundColor,
+      color,
       outline: "none",
       cursor: isFixed || !isLoggedIn ? "default" : "text",
     };
@@ -422,6 +605,8 @@ export default function GamePage() {
           </span>
         </p>
 
+        <Timer elapsedSeconds={elapsedSeconds} />
+
         {!isLoggedIn ? (
           <div style={warningStyle}>
             You can view this game while logged out, but interaction is disabled until you log in.
@@ -459,6 +644,7 @@ export default function GamePage() {
             <div key={`row-${rowIndex}`} style={rowStyle}>
               {row.map((cell, colIndex) => {
                 const isFixed = game.initialBoard[rowIndex][colIndex] !== 0;
+                const isConflicting = conflictCells.has(`${rowIndex}-${colIndex}`);
 
                 return (
                   <input
@@ -471,7 +657,12 @@ export default function GamePage() {
                     onChange={(event) =>
                       handleCellChange(rowIndex, colIndex, event.target.value)
                     }
-                    style={getCellStyle(rowIndex, colIndex, isFixed)}
+                    style={getCellStyle(
+                      rowIndex,
+                      colIndex,
+                      isFixed,
+                      isConflicting
+                    )}
                   />
                 );
               })}

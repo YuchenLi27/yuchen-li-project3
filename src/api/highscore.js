@@ -1,21 +1,11 @@
-const API_BASE = "http://localhost:5050/api/highscore";
-
-const handleResponse = async (response) => {
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
-  }
-
-  return data;
-};
+const API_ROOT = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = `${API_ROOT}/highscore`;
 
 export const getHighscores = async () => {
   const response = await fetch(API_BASE, {
     credentials: "include",
   });
-
-  return handleResponse(response);
+  return response.json();
 };
 
 export const updateHighscore = async (payload) => {
@@ -28,13 +18,12 @@ export const updateHighscore = async (payload) => {
     body: JSON.stringify(payload),
   });
 
-  return handleResponse(response);
+  return response.json();
 };
 
 export const getHighscoreByGameId = async (gameId) => {
   const response = await fetch(`${API_BASE}/${gameId}`, {
     credentials: "include",
   });
-
-  return handleResponse(response);
+  return response.json();
 };

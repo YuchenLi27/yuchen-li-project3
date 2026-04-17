@@ -18,6 +18,7 @@ const formatGameResponse = (game) => {
     initialBoard: game.initialBoard,
     solution: game.solution,
     completedBy: game.completedBy,
+    elapsedSeconds: game.elapsedSeconds ?? 0,
   };
 };
 
@@ -25,7 +26,7 @@ router.get("/", async (req, res) => {
   try {
     const games = await SudokuGame.find({})
       .sort({ createdAt: -1 })
-      .select("name difficulty createdBy createdAt updatedAt");
+      .select("name difficulty createdBy createdAt updatedAt elapsedSeconds");
 
     return res.json({
       success: true,
@@ -41,19 +42,42 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
+    const username = req.cookies?.username;
+
+    if (!username) {
+      return res.status(401).json({
+        success: false,
+        message: "You must be logged in to create a game",
+      });
+    }
+
     const { difficulty } = req.body;
     const normalizedDifficulty = difficulty === "EASY" ? "EASY" : "NORMAL";
 
-    let name = generateGameName();
-    let existingGame = await SudokuGame.findOne({ name });
+    const sudokuData = createSudokuGameData(normalizedDifficulty);
 
-    while (existingGame) {
-      name = generateGameName();
-      existingGame = await SudokuGame.findOne({ name });
+    let name = "";
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    while (attempts < maxAttempts) {
+      const candidateName = generateGameName();
+      const existingGame = await SudokuGame.findOne({ name: candidateName });
+
+      if (!existingGame) {
+        name = candidateName;
+        break;
+      }
+
+      attempts += 1;
     }
 
-    const sudokuData = createSudokuGameData(normalizedDifficulty);
-    const username = req.cookies?.username || "Guest";
+    if (!name) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate a unique game name. Please try again.",
+      });
+    }
 
     const newGame = await SudokuGame.create({
       name,
@@ -63,6 +87,7 @@ router.post("/", async (req, res) => {
       initialBoard: sudokuData.initialBoard,
       solution: sudokuData.solution,
       completedBy: [],
+      elapsedSeconds: 0,
     });
 
     return res.status(201).json({
@@ -72,6 +97,13 @@ router.post("/", async (req, res) => {
       game: formatGameResponse(newGame),
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "A game with this generated name already exists. Please try again.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Failed to create game",
@@ -106,7 +138,7 @@ router.get("/:gameId", async (req, res) => {
 router.put("/:gameId", async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { board, completedBy } = req.body;
+    const { board, completedBy, elapsedSeconds } = req.body;
 
     const game = await SudokuGame.findById(gameId);
 
@@ -117,12 +149,20 @@ router.put("/:gameId", async (req, res) => {
       });
     }
 
-    if (board) {
+    if (Array.isArray(board)) {
       game.board = board;
     }
 
     if (Array.isArray(completedBy)) {
       game.completedBy = completedBy;
+    }
+
+    if (
+      typeof elapsedSeconds === "number" &&
+      Number.isFinite(elapsedSeconds) &&
+      elapsedSeconds >= 0
+    ) {
+      game.elapsedSeconds = Math.floor(elapsedSeconds);
     }
 
     await game.save();

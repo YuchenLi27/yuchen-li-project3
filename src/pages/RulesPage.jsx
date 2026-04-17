@@ -92,7 +92,7 @@ export default function RulesPage() {
             rel="noreferrer"
             style={linkStyle}
           >
-            LinkedIn: linkedin.com/in/example-profile
+            LinkedIn: https://www.linkedin.com/in/yuchen-li-ycl/
           </a>
         </div>
       </div>

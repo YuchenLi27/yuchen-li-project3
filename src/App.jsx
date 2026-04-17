@@ -1,12 +1,12 @@
 import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import HomePage from "./pages/HomePage";
-import RulesPage from "./pages/RulesPage";
 import GamesPage from "./pages/GamesPage";
+import GamePage from "./pages/GamePage";
+import RulesPage from "./pages/RulesPage";
+import ScoresPage from "./pages/ScoresPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import GamePage from "./pages/GamePage";
-import ScoresPage from "./pages/ScoresPage";
 
 export default function App() {
   return (

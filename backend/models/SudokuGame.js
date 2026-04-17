@@ -33,6 +33,11 @@ const sudokuGameSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    elapsedSeconds: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
