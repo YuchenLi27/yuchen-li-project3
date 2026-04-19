@@ -3,7 +3,7 @@
 A full-stack Sudoku web application built with React, Vite, Express, MongoDB, and Mongoose.
 
 ## Live Demo
-- Deployed App:
+- Deployed link: https://sudoku-backend-qnh4.onrender.com
 - GitHub Repository: https://github.com/YuchenLi27/yuchen-li-project3
 
 ## Overview
@@ -186,7 +186,10 @@ implementing authentication and cookies
 integrating the frontend with backend routes
 fixing gameplay regressions during migration
 debugging deployment and environment variable issues
+
 5. What bonus points did you accomplish?
 Password encryption: user passwords are hashed before being stored in the database
+
 Delete game: creators can delete their own games, and related recorded wins are updated accordingly.
+
 AI Survey.
