@@ -3,6 +3,7 @@
 A full-stack Sudoku web application built with React, Vite, Express, MongoDB, and Mongoose.
 
 ## Live Demo
+- Demo: https://www.youtube.com/watch?v=KJ7WTvFP7r4
 - Deployed link: https://sudoku-backend-qnh4.onrender.com
 - GitHub Repository: https://github.com/YuchenLi27/yuchen-li-project3
 
